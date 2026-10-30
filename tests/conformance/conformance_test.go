@@ -642,6 +642,7 @@ func buildUsingBuildah(t *testing.T, store storage.Store, test testCase, buildah
 		CompatScratchConfig:     test.compatScratchConfig,
 		CompatLayerOmissions:    test.compatLayerOmissions,
 		Args:                    maps.Clone(test.buildArgs),
+		Labels:                  test.labels,
 	}
 	// build the image and gather output. log the output if the build part of the test failed
 	imageID, _, err := imagebuildah.BuildDockerfiles(t.Context(), store, options, dockerfileName)
@@ -748,6 +749,11 @@ func buildUsingDocker(t *testing.T, client *docker.Client, mobyClient *mobyclien
 		RmTmpContainer:      true,
 		ForceRmTmpContainer: true,
 		BuildArgs:           buildArgs,
+		Labels:              make(map[string]string),
+	}
+	for _, label := range test.labels {
+		key, value, _ := strings.Cut(label, "=")
+		options.Labels[key] = value
 	}
 	if test.dockerUseBuildKit || test.dockerBuilderVersion != "" {
 		if test.dockerBuilderVersion != "" {
@@ -1446,12 +1452,27 @@ type (
 		fsSkip               []string                  // expected filesystem differences, typically timestamps on files or directories we create or modify during the build and don't reset
 		failOnExtraFSContent bool                      // if set, fail when buildah produces filesystem entries that Docker doesn't
 
-		fsSkipCompatVolumesTrue []string          // more expected filesystem differences when compatVolumes=true
+		fsSkipCompatVolumesTrue []string // more expected filesystem differences when compatVolumes=true
+		labels                  []string
 		buildArgs               map[string]string // build args to supply, as if --build-arg was used
 	}
 )
 
 var internalTestCases = []testCase{
+	{
+		name:                "cli-label-unset-variables",
+		dockerfileContents:  "FROM scratch\n",
+		withoutImagebuilder: true,
+		labels: []string{
+			"plain=value",
+			"empty=",
+			"bare",
+			"undefined=$BUILDAH_LABEL_UNDEFINED",
+			"braced=${BUILDAH_LABEL_UNDEFINED}",
+			"mixed=prefix-$BUILDAH_LABEL_UNDEFINED-suffix",
+			"trailing=cost$",
+		},
+	},
 	{
 		name:         "shell test",
 		dockerfile:   "Dockerfile.shell",
