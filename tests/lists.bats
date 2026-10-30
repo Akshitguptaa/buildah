@@ -371,19 +371,23 @@ IMAGE_LIST_S390X_INSTANCE_DIGEST=sha256:fc5aae77765f7f26f729bad7bfb3cef1bf4e9260
 }
 
 @test "manifest-from-tag" {
+    run_buildah info --format '{{.host.arch}}'
+    arch="$output"
     run_buildah from $WITH_POLICY_JSON --name test-container ${IMAGE_LIST}
     run_buildah inspect --format '{{.OCIv1.Architecture}}' ${IMAGE_LIST#docker://}
-    expect_output --substring amd64
+    expect_output --substring "$arch"
     run_buildah inspect --format '{{.OCIv1.Architecture}}' test-container
-    expect_output --substring amd64
+    expect_output --substring "$arch"
 }
 
 @test "manifest-from-digest" {
+    run_buildah info --format '{{.host.arch}}'
+    arch="$output"
     run_buildah from $WITH_POLICY_JSON --name test-container ${IMAGE_LIST_DIGEST}
     run_buildah inspect --format '{{.OCIv1.Architecture}}' ${IMAGE_LIST_DIGEST#docker://}
-    expect_output --substring amd64
+    expect_output --substring "$arch"
     run_buildah inspect --format '{{.OCIv1.Architecture}}' test-container
-    expect_output --substring amd64
+    expect_output --substring "$arch"
 }
 
 @test "manifest-from-instance" {
